@@ -72,7 +72,7 @@ double density(double x, double y,double z, int xa, int ya, int za, double& A, d
     double p;
     
     if ((z<50) || (z> (za-50))) {p = 3.3;A = 140;Z= 11;} 	// Silicon Nitride membrane at the top and bottom of the material
-    else if ((((x-(xa/2))*(x-(xa/2)))+(((y-(ya/2)))*((y-(ya/2))))+(((z-200))*((z-200)))) < 200){p = 19.2;A = 196.0;Z = 79;} 	//circle of radius 30, centered at (125,125,50)
+    else if ((((x-(xa/2))*(x-(xa/2)))+(((y-(ya/2)))*((y-(ya/2))))+(((z-100))*((z-100)))) < 100){p = 19.2;A = 196.0;Z = 79;} 	//circle of radius 30, centered at (125,125,50)
     //else if ((((x-50)*(x-50))+(((y-50))*((y-50)))+(((z-100))*((z-100)))) < 200){p = 19.2;A = 196.0;Z = 79;} 	//circle of radius 26 centered at (50,50,50)
     //else if ((((x-(200))*(x-200))+(((y-200))*((y-900)))+(((z-900))*((z-180)))) < 200){p = 19.2;A = 196.0;Z = 79;} // circle of radius 20 centered at (200,200,50)
 	else
