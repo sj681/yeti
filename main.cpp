@@ -106,9 +106,10 @@ void angle(int& k, int& q, int& s,double RND2, double defect, double RND3, doubl
     phi = 2*RND3*M_PI; 				// calculates the angle phi, this is the angle in the x,y direction.
     theta2 = acos(1- ((2*defect* RND2)/(1+defect-RND2))); 				//calculates the angles - randomly
     
-    R = (1-((cos(theta2)+ defect*cos(theta2) -1 - defect)/(cos(theta2)-1-2*defect)));		//this is a re-arranged version of the previous theta equation
-    R2 = (1-((cos(theta2+0.01)+ defect*cos(theta2+0.01) -1 - defect)/(cos(theta2+0.01)-1-2*defect)));
-    prob = sqrt((R-R2)*(R-R2)); 				//the probability of each angle is equal to the intergral of the culmative R, theta graph for that point.
+    //R = (1-((cos(theta2)+ defect*cos(theta2) -1 - defect)/(cos(theta2)-1-2*defect)));		//this is a re-arranged version of the previous theta equation
+    //R2 = (1-((cos(theta2+0.01)+ defect*cos(theta2+0.01) -1 - defect)/(cos(theta2+0.01)-1-2*defect)));
+    //prob = sqrt((R-R2)*(R-R2)); 				//the probability of each angle is equal to the intergral of the culmative R, theta graph for that point.
+    prob = 1 - RND2;
     int idx = int((theta2*18000)/M_PI);			//saves the theta value as a interger number in degrees, this is timesed by 100 so we can increase the precision to 0.01 degrees
     bin[idx] = bin[idx] + 1; 					//by adding one to the bin of the the theta value it was scattered by we can create an angluar probability graph.
     P= probability*prob;						// P calculates the culmative probability for each angle, this is to account for the forced high angle scattering.
