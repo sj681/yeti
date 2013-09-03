@@ -40,7 +40,7 @@
 //
 //----------------------------------------------------------------
 //
-//   xx is a program to create simulated STEM images of in-
+//   yeti is a program to create simulated STEM images of in-
 //   situ samples containing objects of different denities. 
 //
 //   Rutherford scattering of the electrons is assumed. An
