@@ -77,7 +77,6 @@ double density(double x, double y,double z, int xa, int ya, int za, double& A, d
     //else if ((((x-(200))*(x-200))+(((y-200))*((y-900)))+(((z-900))*((z-180)))) < 200){p = 19.2;A = 196.0;Z = 79;} // circle of radius 20 centered at (200,200,50)
 	else
     {p = 1;A = 18;Z = 7.42;} 	//everything else is water
-   //{p = 19.2;A = 196.0;Z = 79;}
     return (p);
 }
 
