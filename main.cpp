@@ -59,15 +59,15 @@
 
 using namespace std;
 // This code is set to a nm = 1 pixel^2 scale
+double res = 0.2;
 
-int xa = 250; 					//xa, ya, za represent the maximum x,y,z co-ordinates of the sample size. Assuming the sample starts at (0,0,0).
-int ya = 250;
-int za = 250;
+int xa = 50/res; 					//xa, ya, za represent the maximum x,y,z co-ordinates of the sample size. Assuming the sample starts at (0,0,0).
+int ya = 50/res;
+int za = 250/res;
 
-double r1 = 2e7; 				//sets the inside radius of the HAADF detector
+double r1 = 1e7; 				//sets the inside radius of the HAADF detector
 
-int j = 10;					//sets the number of electrons going through each pixel
-
+int j = 200;					//sets the number of electrons going through each pixel
 
 // DENSITY - a function for choosing the density, Atomic weight and Atomic number of each pixel in the array at the moment we can only create geometric shapes.
 //at the moment this has 3 circles of Gold and sets everywhere else to be water.
@@ -75,8 +75,8 @@ int j = 10;					//sets the number of electrons going through each pixel
 double density(double x, double y,double z, int xa, int ya, int za, double& A, double& Z){
     double p;
     
-    if ((z<50) || (z> (za-50))) {p = 3.3;A = 140;Z= 11;} 	// Silicon Nitride membrane at the top and bottom of the material
-    else if ((((x-(xa/2))*(x-(xa/2)))+(((y-(ya/2)))*((y-(ya/2))))+(((z-170))*((z-170)))) < 400){p = 19.2;A = 196.0;Z = 79;} 	//circle of radius 30, centered at (125,125,50)
+    //if ((z<50/res) || (z> (za-50/res))) {p = 3.3;A = 140;Z= 11;} 	// Silicon Nitride membrane at the top and bottom of the material
+   if ((((x-(xa/2))*(x-(xa/2)))+(((y-(ya/2)))*((y-(ya/2))))+(((z-(80/res)))*((z-(80/res))))) < 100/(res*res)){p = 19.2;A = 196.0;Z = 79;} 	//circle of radius 30, centered at (125,125,50)
     //else if ((((x-50)*(x-50))+(((y-50))*((y-50)))+(((z-125))*((z-125)))) < 400){p = 19.2;A = 196.0;Z = 79;} 	//circle of radius 26 centered at (50,50,50)
     //else if ((((x-(200))*(x-200))+(((y-200))*((y-200)))+(((z-170))*((z-170)))) < 400){p = 19.2;A = 196.0;Z = 79;} // circle of radius 20 centered at (200,200,50)
 	else
@@ -89,10 +89,10 @@ double density(double x, double y,double z, int xa, int ya, int za, double& A, d
 // LENGTH - to calculate the mean free path (l) for each material, this is calculated using the rutherford cross section of the material and the materials defect.
 //the free path for each material is calculated using a random number times the mean free path - this is called the step.
 
-void length(double Z, double E,double A,double NA,double p,double RND1, double& defect,double cs, double& l){
+void length(double Z, double E,double A,double NA,double p,double RND1, double& defect,double cs, double& l, double res){
     defect =3.4*1e-3 * pow(Z,0.67)/E;
     cs = (Z*Z/(E*E)) * 5.21e-21 * ((4.0*M_PI )/(defect*(defect+1.0))) * pow(((E + 511.0)/(E+1024.0)),2.0);
-    l = A/(NA * p * cs)*1e7;
+    l = A/(NA * p * cs)*(1e7/res);
 }
 
 
@@ -134,7 +134,7 @@ double deds(double p, double Z, double A, double& changeinE, double J, double E)
 
 // POSITION - calculates the unit vectors in x,y,z so we can increase in incremental steps up to the step length seeing if it has changes density
 
-void position(double unitx, double unity, double unitz, double theta, double phi, double& x, double& y, double& z,double& x3, double& y3, double& z3, double G, double& dP, double& P, double l){
+void position(double unitx, double unity, double unitz, double theta, double phi, double& x, double& y, double& z,double& x3, double& y3, double& z3, double G, double& dP, double& P, double l, double res){
     unitx = sin(theta)*cos(phi); 				// calculates the unit vecotrs
     unity = sin(theta)*sin(phi);
     unitz = cos(theta);
@@ -142,21 +142,21 @@ void position(double unitx, double unity, double unitz, double theta, double phi
     y3 = y + unity*G;   						//density hasnt changed, x,y,z have increased by the step length
     z3 = z + unitz*G;
     
-    dP = exp(-G/l)/l;    						//calc the change in scattering potential over length dl
+    dP = (exp(-G/l))/(l*res*res);    						//calc the change in scattering potential over length dl
     P = P-dP;            						//minuses dP from 1, when it equals the minimum P the step is over
 }
 
 
 // FINAL - calulates the final position of the electron hitting the detector 
 
-void final(double theta, double phi, double& x, double& y, double& z,double& x2, double& y2, double& q2){
+void final(double theta, double phi, double& x, double& y, double& z,double& x2, double& y2, double& q2, double res){
     double unitx = sin(theta)*cos(phi);			// calculates the unit vecotrs
     double unity = sin(theta)*sin(phi);
     double unitz = cos(theta);
     int z2 = 1e8;               				//the screen is 10cm away
-    double r = (z + z2)/unitz;     				//calculates the distance from the electron to the screen
-    x2 = x + unitx*r;       					//calculates the final position on the screen
-    y2 = y + unity*r;
+    double r = (z*res + z2)/unitz;     				//calculates the distance from the electron to the screen
+    x2 = x*res + unitx*r;       					//calculates the final position on the screen
+    y2 = y*res + unity*r;
     double q = (x2*x2) + (y2*y2);
     q2 = (pow(q,0.5));  						//calculates the radial length of the x,y value from the centre
 }
@@ -171,7 +171,6 @@ void reset(int& k, double& x, double& y, double& z,double& x3, double& y3, doubl
     E = 100.0;
     theta = 24e-3*((RND4*2)-1);
     probability = 1.0;
-    P = 0;
     k = 0;
 }
 void coord(double& x, double& y, double& z, double x3, double y3, double z3){
@@ -226,7 +225,7 @@ int main(){
     double probability, P , prob, dP;
 
     
-    Array4D<double> scan(xa,ya,za,3);				//a 10 by 10 array each containing the density, atomic number and atomic weight
+    //Array4D<double> scan(xa,ya,za,3);				//a 10 by 10 array each containing the density, atomic number and atomic weight
     
     std::vector<double> bin(36001,0.0);		 	//starts a vector with 361 points, one for each theta. each with a starting co-ordinate 0,0
     
@@ -235,9 +234,9 @@ int main(){
     for(int i=0; i<scan2.size(); i++) scan2[i].resize(ya+1);
     
     
-    for (int yinitial = 0; yinitial<ya; yinitial ++){      						//loops over y coordinates
+    for (int yinitial = 0; yinitial<ya+1; yinitial ++){      						//loops over y coordinates
         std::cout<<yinitial<<endl;                         						//prints out yintitial value to guage progression
-        for (int xinitial =0; xinitial<xa; xinitial ++){   					//loops over x coordinates
+        for (int xinitial =0; xinitial<xa+1; xinitial ++){   					//loops over x coordinates
             
             for (int n=0; n<j; n++){    										//for loop for the number of electrons up to j
                 
@@ -246,43 +245,47 @@ int main(){
                 grnd.seed(seed);
 				double RND4 = grnd();
                 reset( k, x, y, z, x3, y3, z3,xinitial, yinitial,  E,  theta,  probability, prob,  P, RND4); //calls the reset function
-
-                while((E>0.1) & (x<xa) & (y<ya) & (z<za) & (x>-0.01) & (y>-0.01) & (z>-0.01)){ //while the electron is inside the box membrane and it has sufficient energy
                     
                     double RND1 = grnd(); 										//selects random numbers
                     double RND2 = grnd();
                     double RND3 = grnd();
 
                     p = density(x,y,z,xa,ya,za,A,Z);    						//outputs p,A,Z for the x,y,z positions
-                    length(Z, E,A, NA, p, RND1, defect,cs, l); 		//calculates the mean free path,
+                    length(Z, E,A, NA, p, RND1, defect,cs, l,res); 		//calculates the mean free path,
                     angle(k,q,s,RND2, defect, RND3, theta, phi, bin, probability, prob); //randomly outputs theta and phi, calculated using p,Z,A
-                    for (double G=1 ; G<100000000; G++){ 										//a function increasing x,y,z in nm steps to check it doesnt change density before the end of the step length
-					                  //std::cout<<dP<<"\t"<<P<<"\t"<<RND1<<endl;   
-					  position( unitx,unity, unitz,theta, phi, x, y,z, x3, y3,z3,G, dP,P, l);     //functions to calc. how x,y,z progress over time
+                    for (double G=1 ; G<100000000; G = G + 1/res){ 	 //a function increasing x,y,z in nm steps to check it doesnt change density before the end of the step length
+					                  //std::cout<<dP<<"\t"<<G/res<<"\t"<<l<<endl;   
+							position( unitx,unity, unitz,theta, phi, x, y,z, x3, y3,z3,G, dP,P, l,res);     //functions to calc. how x,y,z progress over time
                             if (z3<-0.01){ 	//if the electron is travelling in the -ve z direction it will hit the back scatter detector
-							 // std::cout<<"back"<<"\t"<<x3<<"\t"<<y3<<"\t"<<z3<<endl;
+							  //std::cout<<"back"<<"\t"<<x3<<"\t"<<y3<<"\t"<<z3<<endl;
 							  coord(x, y,z,x3, y3, z3);
-							  P= 1;  
+							  P= 1/res;  
 							  scan2[xinitial][yinitial] = scan2[xinitial][yinitial] + pow(probability,1/k)*10000;  //adds the number of electrons hitting a certain point on the back scatter detector weighted by the kth root of the probabilty
 							  //scan2[xinitial][yinitial] = scan2[xinitial][yinitial] +1;
 							  break;
 							}
-							else if (P<(RND1)){   											//if the scattering potential reaches the min value is RND1 because it is (e^-G/l)/l = RND1
-							 //std::cout<<"end"<<"\t"<<x3<<"\t"<<y3<<"\t"<<z3<<endl;
+							else if (P<(RND1/res)){   											//if the scattering potential reaches the min value is RND1 because it is (e^-G/l)/l = RND1
+							//std::cout<<"end"<<"\t"<<sqrt(x3*x3+y3*y3+z3*z3)<<endl;
 							  coord(x, y,z,x3, y3, z3);
 							  myfile2 << n << "\t"<< x<< "\t" << y<<"\t" << -z<<"\t"<<theta*180/M_PI<< endl;
 							  s++;        										//changes the seed and random number order
-							  P =1;       										//resets P
+							  P =1/res;       										//resets P
 							  E = E + deds( p, Z, A, changeinE, J,  E); 		//calculates the change in energy
-							  break;
-                            
+							  double RND1 = grnd(); 										//selects random numbers
+							  double RND2 = grnd();
+							  double RND3 = grnd();
+
+							  p = density(x,y,z,xa,ya,za,A,Z);    					//outputs p,A,Z for the x,y,z positions
+							  length(Z, E,A, NA, p, RND1, defect,cs, l,res); 		//calculates the mean free path,
+							  angle(k,q,s,RND2, defect, RND3, theta, phi, bin, probability, prob); //randomly outputs theta and phi, calculated using p,Z,A
+  
                         }
                             
 							else if (z3>za){ 
 							  //std::cout<<"bottom"<<"\t"<<x3<<"\t"<<y3<<"\t"<<z3<<endl;
 							  	coord(x, y,z,x3, y3, z3);
-								P= 1;											//if it has left and is traveling in the +ve z direction it will hit the detector
-                                final(theta,phi, x, y, z,x2, y2, q2);   		//calc the unit x,y,z values
+								P= 1/res;											//if it has left and is traveling in the +ve z direction it will hit the detector
+                                final(theta,phi, x, y, z,x2, y2, q2,res);   		//calc the unit x,y,z values
                                 if (q2>r1){     									//if this is greater than r1 (the inside detector radius) it is saved to the array scan2 and to a file
                                     myfile3 <<x2<< "\t" <<y2<<"\t" <<z2<<"\t" <<r<< endl;
                                     scan2[xinitial][yinitial] = scan2[xinitial][yinitial] + pow(probability,1/k)*10000;
@@ -304,17 +307,17 @@ int main(){
 						   
                         
 							else if (density(x3,y3,z3,xa,ya,za,A,Z) != density(x,y,z,xa,ya,za,A,Z)){ //if the denstiy changes evertyhing is recalculated for the new material
-								
+								//std::cout<<"change"<<endl;
 								coord(x, y,z,x3, y3, z3);
 								G = 0;
 								p = density(x,y,z,xa,ya,za,A,Z);    			//recalculates the p,A,Z for the new co-ordinates
-								length(Z,  E, A,NA, p,RND1,defect,cs,l);   	//calculates how far it can travel, P is not re-set so it wont travel the full step length
+								length(Z,  E, A,NA, p,RND1,defect,cs,l,res);   	//calculates how far it can travel, P is not re-set so it wont travel the full step length
 								
 								//Random numbers are not reset so it carries on going in the same direction and the min value in the same
 							}
 					}
                
-                }
+                
                 //========================= end of scattering in the material ===========================
             }
         }
@@ -326,7 +329,7 @@ int main(){
         for(int k=0; k<scan2.size(); k++){
             
             if((i<xa) & (k<ya) & (k>0) & (i>0)){    //if the electron is within the x and y coordinates
-                myfile7 << i << "\t"<< k << "\t"<<scan2[i][k] << std::endl;     //writes these to a file
+                myfile7 << i*res << "\t"<< k*res << "\t"<<scan2[i][k] << std::endl;     //writes these to a file
 			}
         }
         myfile7 <<std::endl;
