@@ -61,17 +61,17 @@ using namespace std;
 // This code is set to a nm = 1 pixel^2 scale
 double res = 1;
 
-int xa =250/res; 					//xa, ya, za represent the maximum x,y,z co-ordinates of the sample size. Assuming the sample starts at (0,0,0).
+int xa = 250/res; 					//xa, ya, za represent the maximum x,y,z co-ordinates of the sample size. Assuming the sample starts at (0,0,0).
 int ya = 250/res;
-int za =250/res;
+int za = 250/res;
 
-double r1 = 2e7; 					//sets the inside radius of the HAADF detector
+double r1 = 1e7; 					//sets the inside radius of the HAADF detector
 
-int j = 1;						//sets the number of electrons going through each pixel
+int j = 25;						//sets the number of electrons going through each pixel
 
 
-double xangle = M_PI/8;
-double zangle = M_PI/5;
+double xangle = M_PI/2;
+double zangle = -M_PI/2;
 
 // DENSITY - a function for choosing the density, Atomic weight and Atomic number of each pixel in the array at the moment we can only create geometric shapes.
 //at the moment this has 3 circles of Gold and sets everywhere else to be water.
@@ -79,16 +79,17 @@ double zangle = M_PI/5;
 double density(double x, double y,double z, int xa, int ya, int za, double& A, double& Z, int zinitial){
     double p;
 
-	if ((((x-10)*(x-10))+(((y-10))*((y-10)))+(((z-(80/res)))*((z-(80/res))))) < 300/(res*res)){p = 19.2;A = 196;Z = 79;}
+	if (((x*x)+((y/res)*(y/res))+((z/res)*((z/res)))) < 800/(res*res)){p = 19.2;A = 196;Z = 79;}
+else if (((x*x)+((y/res)*(y/res))+((z+60/res)*((z+60/res)))) < 800/(res*res)){p = 19.2;A = 196;Z = 79;}
 
-	//else if ((x>((-xa/2) +50))& (y>((-ya/2) + 50))&( x< ((xa/2)-50))&( y< ((ya/2) -50))){ 	// Silicon Nitride membrane at the top and bottom of the material 	//everything else is wate
-	//	if ((z<50/res) || (z> (za-50/res))) {p = 3.3;A = 140;Z= 11;} 
-		else {p = 1;A = 18;Z = 7.42;} 
+		//else if ((z<50/res) || (z> (za-50/res))) {p = 3.3;A = 140;Z= 11;} 
+		//else {p = 1;A = 18;Z = 7.42;} 
 //}
-	//else  { p = 0.001; A  = 0.0001; Z = 0.0001;}
+else  { p = 0.001; A  = 0.0001; Z = 0.0001;}
 	  
-	  //{p = 10.49;A = 107;Z= 47;}
-	  //{p = 1;A = 18;Z = 7.42;} 
+	 // {p = 10.49;A = 107;Z= 47;}
+	//else  
+	//{p = 1;A = 18;Z = 7.42;} 
     return (p);
 }
 
@@ -115,7 +116,7 @@ void angle(int& k, int& q, int& s,double RND2, double defect, double RND3, doubl
     
     phi = 2*RND3*M_PI; 				// calculates the angle phi, this is the angle in the x,y direction.
     theta2 = acos(1- ((2*defect* RND2)/(1+defect-RND2))); 				//calculates the angles - randomly
-    
+   // std::cout<<theta2*180/M_PI<<endl;
 	prob = 1 - RND2;			
     int idx = int((theta2*18000)/M_PI);			//saves the theta value as a interger number in degrees, this is timesed by 100 so we can increase the precision to 0.01 degrees
     bin[idx] = bin[idx] + 1; 					//by adding one to the bin of the the theta value it was scattered by we can create an angluar probability graph.
@@ -126,6 +127,7 @@ void angle(int& k, int& q, int& s,double RND2, double defect, double RND3, doubl
     s++;    									//resets the random scattering by changing the seed number
     theta2 =  theta2 + theta;
     theta = theta2;
+	//std::cout<<theta*180/M_PI<<endl;
 }
 
 
@@ -141,10 +143,10 @@ double deds(double p, double Z, double A, double& changeinE, double J, double E)
 
 // POSITION - calculates the unit vectors in x,y,z so we can increase in incremental steps up to the step length seeing if it has changes density
 
-void position(double unitx, double unity, double unitz, double theta, double phi, double& x, double& y, double& z,double& x3, double& y3, double& z3, double G, double& dP, double& P, double l, double res){
-    unitx = sin(theta)*cos(phi); 				// calculates the unit vecotrs
-    unity = sin(theta)*sin(phi);
-    unitz = cos(theta);
+void position(double theta, double phi, double& x, double& y, double& z,double& x3, double& y3, double& z3, double G, double& dP, double& P, double l, double res){
+    double unitx = sin(theta)*cos(phi); 				// calculates the unit vecotrs
+    double unity = sin(theta)*sin(phi);
+    double unitz = cos(theta);
     x3 = x + unitx*G;   						//G increases until the step length is reached, at that point if the
     y3 = y + unity*G;   						//density hasnt changed, x,y,z have increased by the step length
     z3 = z + unitz*G;
@@ -156,64 +158,51 @@ void position(double unitx, double unity, double unitz, double theta, double phi
 
 // FINAL - calulates the final position of the electron hitting the detector 
 
-/*void final(double& x5, double& y5, double& z5, double RTran[][3],double RMat[][3],std::vector<double> xyz,std::vector<double> xyzdash,double theta, double phi, double& x, double& y, double& z,double& x2, double& y2, double& q2, double res, double& thetasample){
-  
-   
+void final(double xdiff, double ydiff, double& x3, double& y3,double RTran[][3],double RMat[][3],std::vector<double> xyz,std::vector<double> xyzdash,double theta, double phi, double& x, double& y, double& z,double& x2, double& y2, double& q2, double res, double& thetasample){
+
   theta = theta + thetasample;
-  for (int i = 0; i<3; i++){
-	for (int j = 0; j<3; j++){
-	  RTran[i][j] = RMat[j][i];
-	}}
-	  xyz[0] = x;
-	  xyz[1] = y;
-	  xyz[2] = z;
-	  
+  //std::cout<<theta*180/M_PI<<endl;
+  //  for (int i = 0; i<3; i++){
+//	for (int j = 0; j<3; j++){
+	// RTran[i][j] = RMat[j][i];
+	//}}
+
+										
+	  xyz[0] = sin(theta)*cos(phi);
+	  xyz[1] = sin(theta)*sin(phi);
+	  xyz[2] = cos(theta);
+
+	  //std::cout<<"initial"<<"\t"<<xyz[0]<<"\t"<<xyz[1]<<"\t"<<xyz[2]<<endl;
   for (int i = 0; i<3; i++){
 	  double total2 = 0;
 	  for (int j = 0; j<3; j++){
 
-	  total2 = total2 + xyz[j]*RTran[i][j];
+	  total2 = total2 + xyz[j]*RMat[i][j];
 	  xyzdash[i] = total2;}}
   
-	double unitx = sin(theta)*cos(phi);							// calculates the unit vecotrs
-    double unity = sin(theta)*sin(phi);
-    double unitz = cos(theta);
+	double unitx = xyz[0];
+	double unity = xyz[1];
+	double unitz = xyz[2];
+	//std::cout<<"dash"<<"\t"<<xyzdash[0]<<"\t"<<xyzdash[1]<<"\t"<<xyzdash[2]<<endl;
     
     int z2 = 1e8;               								//the screen is 30cm away
-    double r = ((xyzdash[2]*res) + z2)/unitz;     				//calculates the distance from the electron to the screen
-    x2 = xyzdash[0]*res + unitx*r;       						//calculates the final position on the screen
-    y2 = xyzdash[1]*res + unity*r;
+    double r = ((z*res) - z2)/unitz;     				//calculates the distance from the electron to the screen
+    x2 = x*res + unitx*r;       						//calculates the final position on the screen
+    y2 = y*res + unity*r;
     double q = (x2*x2) + (y2*y2);
     q2 = sqrt(q); 
-	x5 = xyzdash[0];	
-	y5 = xyzdash[1];	
-	z5 = xyzdash[2];	//calculates the radial length of the x,y value from the centre
+	//std::cout<<q2<<endl;
 }
-*/
-void final(double& x5, double& y5, double& z5, double RTran[][3],double RMat[][3],std::vector<double> xyz,std::vector<double> xyzdash,double theta, double phi, double& x, double& y, double& z,double& x2, double& y2, double& q2, double res, double& thetasample){
-
-  double unitx = sin(theta)*cos(phi);							// calculates the unit vecotrs
-  double unity = sin(theta)*sin(phi);
-  double unitz = cos(theta);
-  
-  
-    int z2 = 1e8;               								//the screen is 30cm away
-    double r = ((xyzdash[2]*res) + z2)/unitz;     				//calculates the distance from the electron to the screen
-    x2 = xyzdash[0]*res + unitx*r;       						//calculates the final position on the screen
-    y2 = xyzdash[1]*res + unity*r;
-    double q = (x2*x2) + (y2*y2);
-    q2 = sqrt(q);  //calculates the radial length of the x,y value from the centre
-  
-  
-}
-  
   // RESET - resets all the co-ordinates for a new electron
 
-void reset(int& k, int& zinitial, double& E, double& probability, double& z){
+void reset(double zinitial2, double yinitial2, double xinitial2,double thetasample, double& theta, int& k, double& z, double& E, double& probability, double&x, double& y, double xinitial, double yinitial){
     E = 100.0;
     probability = 1.0;
     k = 0;
-	z = zinitial;
+	z = zinitial2;
+	theta = -thetasample;
+	x = xinitial2;
+	y = yinitial2;
 }
 void coord(double& x, double& y, double& z, double x3, double y3, double z3){
   x = x3;
@@ -221,8 +210,7 @@ void coord(double& x, double& y, double& z, double x3, double y3, double z3){
   z =z3;
 }
 
-void RMatrix(double& x4, double& y4, double& z4, double Rz[][3],double Rx[][3],double RMat[][3],std::vector<double> xyz,std::vector<double> xyzdash,double RND4, double RND5,double& theta, int xinitial, int yinitial, int& zinitial, double& x, double& y, double& thetasample){
-
+void RMatrix(double& phisample, double& unitx, double& unity, double& unitz, double Rz[][3],double Rx[][3],double RMat[][3],std::vector<double> xyz,std::vector<double> xyzdash,double RND4, double RND5,double& theta, double& thetasample){
 for(int i=0;i<3;i++){ 								//a for loop to calculate the rotation matrix by times the rotation matrixs in x and z.
    for(int j=0;j<3;j++){
    double total = 0;
@@ -230,7 +218,10 @@ for(int i=0;i<3;i++){ 								//a for loop to calculate the rotation matrix by t
      total = total + Rx[i][k] * Rz[k][j]; 
 	  RMat[i][j]=total;
    }}}
-
+	xyz[0] = 0;
+	xyz[1] = 0;
+	xyz[2] = 1;
+	
 	for (int i = 0; i<3; i++){ 						//This loop takes the incoming direction cosines and calculates the new direstion cosines using the rotation matrix
 	  double total2 = 0;
 	  for (int j = 0; j<3; j++){
@@ -240,37 +231,43 @@ for(int i=0;i<3;i++){ 								//a for loop to calculate the rotation matrix by t
 	  }}
 
   thetasample = acos(xyzdash[2]);					//for the direction cosines theta and phi are calculated
-  double phisample = 1.57079633;
-  double unitx = sin(thetasample)*cos(phisample);	//the unit vectors are worked out.
-  double unity = sin(thetasample)*cos(phisample);
-  double unitz = cos(thetasample);
-  
+  phisample = 1.57079633;
+  unitx = sin(thetasample)*cos(phisample);	//the unit vectors are worked out.
+  unity = sin(thetasample)*sin(phisample);
+  unitz = cos(thetasample);
+}
+void rotate(double& xinitial2, double& yinitial2, double& zinitial2, double& z, double RMat[][3],double unitx, double unity, double unitz,std::vector<double> xyz,std::vector<double> xyzdash, double& x, double& y, double phisample, double thetasample, double xinitial, double yinitial){
+
 	  xyz[0] = xinitial;
 	  xyz[1] = yinitial;
-	  xyz[2] = -50;
+	  xyz[2] = 1.5*za;
 
-
-for (int i = 0; i<3; i++){							//this loop takes the x,y,z positions and calculates the rotated x,y,z positions
+for (int i = 0; i<3; i++){					 		//this loop takes the x,y,z positions and calculates the rotated x,y,z positions
 	  double total2 = 0;
 	  for (int j = 0; j<3; j++){
-
+	
 	  total2 = total2 + xyz[j]*RMat[i][j];
-	  xyzdash[i] = total2;}}	
-	  //std::cout<<xyzdash[0]<<"\t"<<xyzdash[1]<<"\t"<<xyzdash[2]<<endl;;//it contines the new trajectory for 50nm until it hits the top of the sample.
-	  double r = xyzdash[2]/-unitz;
-	  double ydash = xyzdash[1] + unity*r;
-	  double xdash = xyzdash[0] + unitx*r;
-	  theta = -thetasample;
-	  x = xdash - r*sin(thetasample);
-	  y = ydash - xdash*cos(phisample);
-	  zinitial = 0;
-	  x4 = xyzdash[0];	
-	  y4 = xyzdash[1];	
-	  z4 = xyzdash[2];	
+	  xyzdash[i] = total2;}}
+	  //std::cout<<xyzdash[0]<<"\t"<<xyzdash[1]<<"\t"<<xyzdash[2]<<"\t"<<endl;
+	  for (int r = 1; r<4000; r++){
+	  if (xyzdash[1] >0) {
 	  
-}
+	  y = int(xyzdash[1] - (unity*r));
+	  x = int(xyzdash[0] - (unitx*r));
+	  z = int(xyzdash[2] - (unitz*r));}
+	  	  if (xyzdash[1] <0) {
 	  
-
+	  y = int(xyzdash[1] + (unity*r));
+	  x = int(xyzdash[0] + (unitx*r));
+	  z = int(xyzdash[2] + (unitz*r));}
+	  
+	  if (( y == ya/2) || ( y == - ya/2) || ( z == za/2) || ( z == -za/2) || ( x == xa/2) || ( x == -xa/2)) {
+			xinitial2 = x;
+			yinitial2 = y;
+			zinitial2 = z;
+			break;
+	  }}}
+	  
 //----------------------------------------------------------- main code-------------------------------------------------------
 
 
@@ -316,9 +313,8 @@ int main(){
     double probability, P , prob, dP;
 	double thetasample,phisample;
 	double xdash, ydash;
-	int zinitial;
-	double x4,y4,z4;
-	double x5,y5,z5;
+	double zinitial, xinitial2, yinitial2, zinitial2;
+	double xdiff, ydiff,zdiff;
     
     //Array4D<double> scan(xa,ya,za,3);				//a 10 by 10 array each containing the density, atomic number and atomic weight
     
@@ -337,20 +333,19 @@ int main(){
 	std::vector<double> xyz(3,0.0);	
 	std::vector<double> xyzdash(3,0.0);	
 	
-	xyz[0] = 0;
-	xyz[1] = 0;
-	xyz[2] = 1;
+	RMatrix(phisample,unitx,unity,unitz, Rz,Rx,RMat, xyz,xyzdash, RND4,RND5,theta,thetasample);
 	
     for (int yinitial = -ya/2; yinitial<ya/2; yinitial ++){      						//loops over y coordinates
         std::cout<<yinitial<<endl;                         						//prints out yintitial value to guage progression
-        for (int xinitial =-xa/2; xinitial<xa/2; xinitial ++){   						//loops over x coordinates
-            RMatrix(x4,y4,z4,Rz,Rx,RMat,xyz,xyzdash,RND4,RND5,theta,xinitial,yinitial,zinitial,x,y,thetasample);
-            for (int n=0; n<j; n++){    										//for loop for the number of electrons up to j
+        for (int xinitial = - xa/2; xinitial<xa/2; xinitial ++){   						//loops over x coordinates
+ 
+		  rotate(xinitial2, yinitial2, zinitial2,z,RMat, unitx, unity,unitz,xyz, xyzdash, x,y,phisample,thetasample,xinitial, yinitial); 
+		 //std::cout<<x<<"\t"<<y<<"\t"<<z<<"\t"<<xinitial<<"\t"<<yinitial<<endl;
+		  for (int n=0; n<j; n++){    
 				MTRand grnd;            										//declare a class of type MTRand called grnd
                 int seed=(12345+s);    											//declare and seed RNG. Rnd# are not random, seed determines order
                 grnd.seed(seed);
-                reset(k,zinitial,E,probability,z); 								//calls the reset function
-                    
+                reset(zinitial2, yinitial2,xinitial2,thetasample,theta,k,z,E,probability,x,y,xinitial, yinitial); 								//calls the reset function
                     double RND1 = grnd(); 										//selects random numbers
                     double RND2 = grnd();
                     double RND3 = grnd();
@@ -363,17 +358,22 @@ int main(){
 					//std::cout<<xinitial<<"\t"<<yinitial<<"\t"<<x<<"\t"<<y<<"\t"<<theta*180/M_PI<<endl;
 					for (double G=1 ; G<100000000; G = G + 1/res){ 	 //a function increasing x,y,z in nm steps to check it doesnt change density before the end of the step length
 					        //std::cout<<x3<<"\t"<<y3<<"\t"<<z3<<"\t"<<theta<<endl;   
-							position( unitx,unity, unitz,theta, phi, x, y,z, x3, y3,z3,G, dP,P, l,res);     //functions to calc. how x,y,z progress over time
-                            if (z3<-zinitial){ 	//if the electron is travelling in the -ve z direction it will hit the back scatter detector
-							  //std::cout<<"back"<<"\t"<<x3<<"\t"<<y3<<"\t"<<z3<<endl;
-							  //coord(x, y,z,x3, y3, z3);
-							  P= 1/res;  
-							  scan2[xinitial+ xa/2][yinitial+ya/2] = scan2[xinitial+xa/2][yinitial+ya/2] + pow(probability,1/k)*10000;  //adds the number of electrons hitting a certain point on the back scatter detector weighted by the kth root of the probabilty
-							 // scan2[xinitial][yinitial] = scan2[xinitial][yinitial] + pow(probability,1/k)*10000;
-							  break;
+							position(theta, phi, x, y, z, x3, y3,z3,G, dP,P, l,res);     //functions to calc. how x,y,z progress over time
+							if ((z3>za/2) || ( y3>((ya/2))) || (x3>((xa/2))) ||(x3<((-xa/2)))||( z3<(-za/2)) || (y3<-(xa/2))) { 
+							 //std::cout<<"bottom"<<"\t"<<x3<<"\t"<<y3<<"\t"<<z3<<endl;
+							  	coord(x, y,z,x3, y3, z3);
+								P= 1/res;											//if it has left and is traveling in the +ve z direction it will hit the detector
+                                final(xdiff, ydiff, x3,y3,RTran,RMat,xyz,xyzdash,theta,phi,x,y,z,x2,y2,q2,res, thetasample);
+								if (q2>r1){     									//if this is greater than r1 (the inside detector radius) it is saved to the array scan2 and to a file
+                                    myfile3 <<x2<< "\t" <<y2<<"\t" <<z2<<"\t" <<r<< endl;
+									//std::cout<<xinitial<<"\t"<<yinitial<<"\t"<<xinitial2<<"\t"<<yinitial2<<"\t"<<zinitial2<<endl;
+									scan2[xinitial+xa/2][yinitial+ya/2] = scan2[xinitial+xa/2][yinitial+ya/2] + pow(probability,1/k)*10000;
+									myfile <<x2<<"\t" << y2<< "\t" <<E<<endl;
+								}
+							break;
 							}
-							else if (P<(RND1/res)){   											//if the scattering potential reaches the min value is RND1 because it is (e^-G/l)/l = RND1
-							 //std::cout<<"end"<<"\t"<<x3<<"\t"<<y3<<"\t"<<z3<<endl;
+							if (P<(RND1/res)){   											//if the scattering potential reaches the min value is RND1 because it is (e^-G/l)/l = RND1
+							//std::cout<<"end"<<"\t"<<x3<<"\t"<<y3<<"\t"<<z3<<endl;
 							  coord(x, y,z,x3, y3, z3);
 							  myfile2 << n << "\t"<< x<< "\t" << y<<"\t" << z<<"\t"<<theta*180/M_PI<< endl;
 							  s++;        										//changes the seed and random number order
@@ -388,27 +388,10 @@ int main(){
 							  angle(k,q,s,RND2, defect, RND3, theta, phi, bin, probability, prob); //randomly outputs theta and phi, calculated using p,Z,A
   
                         }
-                            //else if (z3>za){
-							else if ((z3>za) || ( y3>((ya/2))) || (x3>((xa/2))) || ( x3<(-xa/2)) || (y3<-(xa/2))) { 
-							  //std::cout<<"bottom"<<"\t"<<x3<<"\t"<<y3<<"\t"<<z3<<endl;
-							  	coord(x, y,z,x3, y3, z3);
-								P= 1/res;											//if it has left and is traveling in the +ve z direction it will hit the detector
-                                final(x5,y5,z5,RTran,RMat,xyz,xyzdash,theta,phi,x,y,z, x2,y2,q2,res,thetasample);   		//calc the unit x,y,z values
-                                myfile8 <<x<<"\t" << y<<"\t"<<z<<endl;
-								myfile10 <<x5<<"\t" << y5<<"\t"<<z5<<endl;
-								myfile9 <<x2<<"\t" << y2<<"\t"<<1e8<<endl;
-								if (q2>r1){     									//if this is greater than r1 (the inside detector radius) it is saved to the array scan2 and to a file
-                                    myfile3 <<x2<< "\t" <<y2<<"\t" <<z2<<"\t" <<r<< endl;
-                                    scan2[xinitial+xa/2][yinitial+ya/2] = scan2[xinitial+xa/2][yinitial+ya/2] + pow(probability,1/k)*10000;
-									//scan2[xinitial][yinitial] = scan2[xinitial][yinitial] + pow(probability,1/k)*10000;
-									myfile <<x2<<"\t" << y2<< "\t" <<E<<endl;
-								}
-							break;
-							}
              
 /*
 							else if (x3>xa-15){
-							 // std::cout<<"pac"<<"\t"<<x3<<"\t"<<y3<<"\t"<<z3<<endl;
+							 //std::cout<<"pac"<<"\t"<<x3<<"\t"<<y3<<"\t"<<z3<<endl;
 							  x = x - xa;}
 							else if (y3>ya-15){
 							   //std::cout<<"pac"<<"\t"<<x3<<"\t"<<y3<<"\t"<<z3<<endl;
@@ -422,7 +405,7 @@ int main(){
 						   
                         
 							else if (density(x3,y3,z3,xa,ya,za,A,Z,zinitial) != density(x,y,z,xa,ya,za,A,Z,zinitial)){ //if the denstiy changes evertyhing is recalculated for the new material
-								//std::cout<<"change"<<"\t"<<x3<<"\t"<<y3<<"\t"<<z3<<endl;
+								//std::cout<<"change"<<"\t"<<theta*180/M_PI<<"\t"<<y3<<"\t"<<z3<<endl;
 								coord(x, y,z,x3, y3, z3);
 								G = 0;
 								p = density(x,y,z,xa,ya,za,A,Z,zinitial);    			//recalculates the p,A,Z for the new co-ordinates
@@ -431,7 +414,6 @@ int main(){
 								//Random numbers are not reset so it carries on going in the same direction and the min value in the same
 							}
 					}
-               
                 
                 //========================= end of scattering in the material ===========================
             }
@@ -444,7 +426,7 @@ int main(){
         for(int k=0; k<scan2.size(); k++){
             
             if((i<xa) & (k<ya) & (k>0) & (i>0)){    //if the electron is within the x and y coordinates
-                myfile7 << i*res-xa/2 << "\t"<< k*res-xa/2 << "\t"<<scan2[i][k] << std::endl;     //writes these to a file
+                myfile7 << i*res-xa/2 << "\t"<< k*res-ya/2 << "\t"<<scan2[i][k] << std::endl;     //writes these to a file
 			}
         }
         myfile7 <<std::endl;
